@@ -234,7 +234,10 @@ class HtmlBuilder:
 
         for report in reports:
             files[report.file.id] = self._add_source_file(report.file)
-
+            severity = report.severity
+            if severity == None:
+                severity = self.get_severity(report.checker_name)
+            
             html_reports.append({
                 'fileId': report.file.id,
                 'reportHash': report.report_hash,
@@ -250,7 +253,7 @@ class HtmlBuilder:
                 'macros': to_macro_expansions(report.macro_expansions),
                 'notes': to_bug_path_events(report.notes),
                 'reviewStatus': report.review_status,
-                'severity': self.get_severity(report.checker_name)
+                'severity': severity
             })
 
         return html_reports, files
@@ -404,17 +407,22 @@ class HtmlBuilder:
             num_of_reports += len(self.generated_html_reports[html_file])
 
         checker_statistics: Dict[str, int] = defaultdict(int)
+        severities: Dict[str, str] = {}
         for html_file in self.generated_html_reports:
             for report in self.generated_html_reports[html_file]:
                 checker = report['checker']['name']
                 checker_statistics[checker] += 1
+                severities[checker] = report['severity']
 
         checker_rows: List[List[str]] = []
         severity_statistics: Dict[str, int] = defaultdict(int)
 
         with io.StringIO() as string:
             for checker_name in sorted(checker_statistics):
-                severity = self.get_severity(checker_name)
+                severity = severities[checker_name]
+                if not severity:
+                    severity = self.get_severity(checker_name)
+                
                 string.write('''
                   <tr>
                     <td>{0}</td>

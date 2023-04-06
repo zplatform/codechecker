@@ -242,7 +242,9 @@ class Parser(BaseParser):
         location = diag.get('location', {})
         checker_name = diag.get('check_name', "unknown")
         analyzer_name = self.__get_analyzer_name(checker_name, metadata)
-        severity = self.get_severity(checker_name)
+        severity = diag.get('severity')
+        if severity == None:
+            severity = self.get_severity(checker_name)
 
         report_annotation = diag["report-annotation"] \
             if "report-annotation" in diag else None
@@ -503,6 +505,9 @@ class Parser(BaseParser):
                 'description': report.message,
                 'category': report.category or 'unknown'
             }
+
+            if report.severity:
+                diagnostic['severity'] = report.severity
 
             if report.analyzer_name:
                 diagnostic['type'] = report.analyzer_name

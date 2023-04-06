@@ -84,7 +84,9 @@ class AnalyzerResult(AnalyzerResultBase):
         """ Parse the given report and create a message from them. """
         report_hash = bug['hash']
         checker_name = bug['bug_type']
-
+        infer_severity = bug['severity']
+        severity = self.__parse_infer_severity(infer_severity.lower())
+        
         message = bug['qualifier']
         line = int(bug['line'])
         col = int(bug['column'])
@@ -99,6 +101,7 @@ class AnalyzerResult(AnalyzerResultBase):
             get_or_create_file(
                 os.path.abspath(source_path), self.__file_cache),
             line, col, message, checker_name,
+            severity=severity,
             report_hash=report_hash,
             bug_path_events=[])
 
@@ -130,3 +133,14 @@ class AnalyzerResult(AnalyzerResultBase):
             get_or_create_file(source_path, self.__file_cache),
             line,
             col)
+
+    def __parse_infer_severity(self, severity) -> str:
+        if severity == "info":
+            return "LOW"
+        elif severity == "advice":
+            return "MEDIUM"
+        elif severity == "warning":
+            return "HIGH"
+        elif severity == "error":
+            return "CRITICAL"
+        return "UNSPECIFIED"
