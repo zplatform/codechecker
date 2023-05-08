@@ -108,12 +108,14 @@ class HtmlBuilder:
     def __init__(
         self,
         layout_dir: str,
-        checker_labels: Optional[CheckerLabels] = None
+        checker_labels: Optional[CheckerLabels] = None,
+        relative_path_with_root_dir: str = None
     ):
         self._checker_labels = checker_labels
         self.layout_dir = layout_dir
         self.generated_html_reports: Dict[str, HTMLReports] = {}
         self.files: FileSources = {}
+        self.relative_path_with_root_dir = relative_path_with_root_dir
 
         css_dir = os.path.join(self.layout_dir, 'css')
         js_dir = os.path.join(self.layout_dir, 'js')
@@ -372,7 +374,10 @@ class HtmlBuilder:
 
                 rs = review_status.lower().replace(' ', '-')
                 file_path = self.files[report['fileId']]['filePath']
-
+                if self.relative_path_with_root_dir:
+                    relative_path = os.path.relpath(file_path, self.relative_path_with_root_dir)
+                    file_path = os.path.normpath(relative_path)
+                
                 checker = report['checker']
                 doc_url = checker.get('url')
                 if doc_url:
