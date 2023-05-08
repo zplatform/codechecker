@@ -246,6 +246,7 @@ class Parser(BaseParser):
         if severity == None:
             severity = self.get_severity(checker_name)
 
+        author = diag.get('author', 'unknown')
         report_annotation = diag["report-annotation"] \
             if "report-annotation" in diag else None
 
@@ -257,6 +258,7 @@ class Parser(BaseParser):
             message=diag.get('description', ''),
             checker_name=checker_name,
             severity=severity,
+            author=author,
             report_hash=diag.get('issue_hash_content_of_line_in_context'),
             analyzer_name=analyzer_name,
             category=diag.get('category'),
@@ -508,6 +510,9 @@ class Parser(BaseParser):
 
             if report.severity:
                 diagnostic['severity'] = report.severity
+
+            if report.author:
+                diagnostic['author'] = report.author
 
             if report.analyzer_name:
                 diagnostic['type'] = report.analyzer_name

@@ -13,6 +13,7 @@ import logging
 import os
 import shutil
 import sys
+import subprocess
 
 from collections import defaultdict
 from string import Template
@@ -238,6 +239,18 @@ class HtmlBuilder:
             if severity == None:
                 severity = self.get_severity(report.checker_name)
             
+
+            git_blame_command = f"git blame -e -L {report.line},{report.line} -- {report.file.path}"
+            git_blame_result = subprocess.run(
+                git_blame_command.split(),
+                stdout=subprocess.PIPE
+            )
+
+            author_email = None
+            if git_blame_result.returncode == 0:
+                author_line = git_blame_result.stdout.decode().split()[1]
+                author_email = author_line.split("<")[1].strip(">")
+
             html_reports.append({
                 'fileId': report.file.id,
                 'reportHash': report.report_hash,
@@ -253,7 +266,8 @@ class HtmlBuilder:
                 'macros': to_macro_expansions(report.macro_expansions),
                 'notes': to_bug_path_events(report.notes),
                 'reviewStatus': report.review_status,
-                'severity': severity
+                'severity': severity,
+                'author': author_email
             })
 
         return html_reports, files
@@ -317,6 +331,7 @@ class HtmlBuilder:
                   <th id="checker-name">Checker name</th>
                   <th id="message">Message</th>
                   <th id="bug-path-length">Bug path length</th>
+                  <th id="author">Author</th>
                   <th id="review-status">Review status</th>
                 </tr>''')
 
@@ -333,6 +348,11 @@ class HtmlBuilder:
                 review_status = report['reviewStatus'] \
                     if 'reviewStatus' in report and \
                     report['reviewStatus'] is not None \
+                    else ''
+                
+                author = report['author'] \
+                    if 'author' in report and \
+                    report['author'] is not None \
                     else ''
 
                 events = report['events']
@@ -371,6 +391,9 @@ class HtmlBuilder:
                     <td>{checker_name_col_content}</td>
                     <td>{message}</td>
                     <td class="bug-path-length">{bug_path_length}</td>
+                    <td class="author" author="{author}">
+                      {author}
+                    </td>
                     <td class="review-status review-status-{rs}">
                       {review_status}
                     </td>

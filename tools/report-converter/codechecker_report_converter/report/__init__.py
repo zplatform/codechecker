@@ -282,6 +282,7 @@ class Report:
         message: str,
         checker_name: str,
         severity: Optional[str] = None,
+        author: Optional[str] = None,
         report_hash: Optional[str] = None,
         analyzer_name: Optional[str] = None,
         category: Optional[str] = None,
@@ -301,6 +302,7 @@ class Report:
         self.message = message
         self.checker_name = checker_name
         self.severity = severity
+        self.author = author
         self.report_hash = report_hash
         self.analyzer_name = analyzer_name
         self.category = category
