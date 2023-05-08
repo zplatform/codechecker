@@ -63,6 +63,7 @@ var BugList = {
            columnId === 'checker-name' ||
            columnId === 'message' ||
            columnId === 'bug-path-length' ||
+           columnId === 'author' ||
            columnId === 'review-status';
   },
 

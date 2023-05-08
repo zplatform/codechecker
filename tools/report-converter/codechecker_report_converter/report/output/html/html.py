@@ -13,6 +13,8 @@ import logging
 import os
 import shutil
 import sys
+import subprocess
+import re
 
 from collections import defaultdict
 from string import Template
@@ -106,12 +108,14 @@ class HtmlBuilder:
     def __init__(
         self,
         layout_dir: str,
-        checker_labels: Optional[CheckerLabels] = None
+        checker_labels: Optional[CheckerLabels] = None,
+        relative_path_with_root_dir: str = None
     ):
         self._checker_labels = checker_labels
         self.layout_dir = layout_dir
         self.generated_html_reports: Dict[str, HTMLReports] = {}
         self.files: FileSources = {}
+        self.relative_path_with_root_dir = relative_path_with_root_dir
 
         css_dir = os.path.join(self.layout_dir, 'css')
         js_dir = os.path.join(self.layout_dir, 'js')
@@ -238,6 +242,22 @@ class HtmlBuilder:
             if severity == None:
                 severity = self.get_severity(report.checker_name)
             
+            git_blame_command = f'git blame -e -L {report.line},{report.line} -- "{report.file.path}"'
+            git_blame_result = subprocess.run(
+                git_blame_command,
+                shell=True, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE
+            )
+
+            author_email = None
+            if git_blame_result.returncode == 0:
+                git_blame_msg = git_blame_result.stdout.decode()
+                print(f'➤ Git blame message {git_blame_msg} at file {report.file.path} and line {report.line}')
+                match = re.search(r'(?<=<)[^>]+', git_blame_msg)
+                if match:
+                    author_email = match.group()
+
             html_reports.append({
                 'fileId': report.file.id,
                 'reportHash': report.report_hash,
@@ -253,7 +273,8 @@ class HtmlBuilder:
                 'macros': to_macro_expansions(report.macro_expansions),
                 'notes': to_bug_path_events(report.notes),
                 'reviewStatus': report.review_status,
-                'severity': severity
+                'severity': severity,
+                'author': author_email
             })
 
         return html_reports, files
@@ -317,6 +338,7 @@ class HtmlBuilder:
                   <th id="checker-name">Checker name</th>
                   <th id="message">Message</th>
                   <th id="bug-path-length">Bug path length</th>
+                  <th id="author">Author</th>
                   <th id="review-status">Review status</th>
                 </tr>''')
 
@@ -334,6 +356,11 @@ class HtmlBuilder:
                     if 'reviewStatus' in report and \
                     report['reviewStatus'] is not None \
                     else ''
+                
+                author = report['author'] \
+                    if 'author' in report and \
+                    report['author'] is not None \
+                    else ''
 
                 events = report['events']
                 if events:
@@ -347,7 +374,10 @@ class HtmlBuilder:
 
                 rs = review_status.lower().replace(' ', '-')
                 file_path = self.files[report['fileId']]['filePath']
-
+                if self.relative_path_with_root_dir:
+                    relative_path = os.path.relpath(file_path, self.relative_path_with_root_dir)
+                    file_path = os.path.normpath(relative_path)
+                
                 checker = report['checker']
                 doc_url = checker.get('url')
                 if doc_url:
@@ -371,6 +401,9 @@ class HtmlBuilder:
                     <td>{checker_name_col_content}</td>
                     <td>{message}</td>
                     <td class="bug-path-length">{bug_path_length}</td>
+                    <td class="author" author="{author}">
+                      {author}
+                    </td>
                     <td class="review-status review-status-{rs}">
                       {review_status}
                     </td>

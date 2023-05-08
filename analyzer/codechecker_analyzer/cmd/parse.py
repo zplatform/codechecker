@@ -144,6 +144,12 @@ def add_arguments_to_parser(parser):
                                   "Note: baseline files must have extension "
                                   "'.baseline'.")
 
+    output_opts.add_argument('-r', '--relative-path-with-root-dir',
+                             dest="relative_path_with_root_dir",
+                             required=False,
+                             help="Root directory to create relative file path\n"
+                                  "for generated reports")
+
     parser.add_argument('--suppress',
                         type=str,
                         dest="suppress",
@@ -383,12 +389,15 @@ def main(args):
     processed_path_hashes = set()
     processed_file_paths = set()
     print_steps = 'print_steps' in args
+    relative_path_with_root_dir = args.relative_path_with_root_dir if 'relative_path_with_root_dir' in args else None
 
     html_builder: Optional[report_to_html.HtmlBuilder] = None
     if export == 'html':
         html_builder = report_to_html.HtmlBuilder(
             context.path_plist_to_html_dist,
-            context.checker_labels)
+            context.checker_labels,
+            relative_path_with_root_dir=relative_path_with_root_dir
+        )
 
     for dir_path, file_paths in report_file.analyzer_result_files(args.input):
         metadata = get_metadata(dir_path)
